@@ -92,6 +92,20 @@
     <footer>Copyright &copy; mit9.github.io</footer>
 
 </div>
+<script>
+    function displayMessage (evt) {
+        alert("I got " + evt.data + " from " + evt.origin);
+    }
 
+    if (window.addEventListener) {
+        window.addEventListener("message", displayMessage, false);
+    }
+    else {
+        window.attachEvent("onmessage", displayMessage);
+    }
+    setTimeout(function(){
+        parent.window.postMessage("hello", "http://localhost:8888");
+    },5000)
+</script>
 </body>
 </html>
