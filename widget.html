@@ -220,7 +220,7 @@
      * @param {object} data
      */
     function messageCreator(widgetId, type, data) {
-        widgets[widgetId].contentWindow.postMessage(new Message(type, widgetId, data), iFrameLink);
+        parent.window.contentWindow.postMessage(new Message(type, widgetId, data), iFrameLink);
     }
 
     /***
