@@ -4,7 +4,6 @@
     <style>
         div.container {
             width: 100%;
-            border: 1px solid gray;
         }
 
         header, footer {
@@ -15,32 +14,78 @@
             text-align: center;
         }
 
-        nav {
-            float: left;
-            max-width: 160px;
-            margin: 0;
-            padding: 1em;
-        }
-
-        nav ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        nav ul a {
-            text-decoration: none;
-        }
-
         article {
-            margin-left: 170px;
-            border-left: 1px solid gray;
             padding: 1em;
             overflow: hidden;
-            min-height: 700px;
+            height: 700px;
+            position: relative;
         }
-        textarea{
+
+        textarea {
             width: 300px;
             height: 150px;
+        }
+
+        .hide-content header,
+        .hide-content footer,
+        .hide-content h1,
+        .hide-content h3,
+        .hide-content label,
+        .hide-content p {
+            display: none;
+            margin: 0;
+            padding: 0;
+            height: auto;
+        }
+
+        .hide-content article {
+            display: block;
+            margin: 0;
+            padding: 0;
+            height: auto;
+            overflow: hidden;
+        }
+
+        .hide-content textarea {
+            width: 100%;
+            height: 100%;
+            display: block;
+            resize: none;
+            overflow: hidden;
+            border: none;
+            margin: 0;
+            border-radius: 0;
+            color: #444;
+            background-color: transparent;
+            z-index: 2;
+            outline: none;
+        }
+
+        .hide-content textarea:focus {
+            outline: none;
+        }
+
+        #backdrop {
+            position: absolute;
+            z-index: -1;
+            background-color: #fff;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        #highlights {
+            color: transparent;
+        }
+
+        #highlights, textarea {
+            font: 14px/20px sans-serif;
+            letter-spacing: 1px;
+        }
+
+        mark {
+            border-radius: 3px;
+            color: transparent;
+            background-color: #b1d5e5;
         }
     </style>
 </head>
@@ -51,16 +96,7 @@
     <header>
         <h1>City Gallery</h1>
     </header>
-
-    <nav>
-        <ul>
-            <li><a href="#">London</a></li>
-            <li><a href="#">Paris</a></li>
-            <li><a href="#">Tokyo</a></li>
-        </ul>
-    </nav>
-
-    <article>
+    <article id="content">
         <h1>London</h1>
         <p>London is the capital city of England. It is the most populous city in the United Kingdom, with a
             metropolitan area of over 13 million inhabitants.</p>
@@ -68,13 +104,10 @@
             its founding by the Romans, who named it Londinium.</p>
         <h3>Teaxtarea part</h3>
         <label for="bla">Some widget</label>
-        <div>
-            <textarea name="widget" id="bla" >
-                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aspernatur consequatur cupiditate delectus, dolores
-                eos fugit hic iusto libero maxime necessitatibus, non perspiciatis placeat praesentium, quae quasi qui quisquam
-                repudiandae veritatis.
-            </textarea>
+        <div id="backdrop">
+            <div id="highlights"></div>
         </div>
+        <textarea name="widget" id="bla" onkeyup="onChangeTextarea(event);">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aspernatur consequatur cupiditate delectus, dolores</textarea>
         <p><span>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aspernatur consequatur cupiditate delectus, dolores
     eos fugit hic iusto libero maxime necessitatibus, non perspiciatis placeat praesentium, quae quasi qui quisquam
     repudiandae veritatis.</span><span>Animi culpa debitis id inventore iste magnam natus neque odio pariatur perspiciatis
@@ -93,19 +126,160 @@
 
 </div>
 <script>
-    function displayMessage (evt) {
-        alert("I got " + evt.data + " from " + evt.origin);
+    /***
+     * Config set
+     * @type {{id: string, recipient: string, width: number, element: object, highlightsId: string, holderId: string, textareaId: string}}
+     */
+    var config = {
+        id: '',
+        recipient: '',
+        width: 0,
+        element: null,
+        highlightsId: 'highlights',
+        holderId: 'content',
+        textareaId: 'bla'
+    };
+    var ua = window.navigator.userAgent.toLowerCase();
+    var isIE = !!ua.match(/msie|trident\/7|edge/);
+
+    /***
+     * Initializing widget to work in frame
+     */
+    function init() {
+        var minHeight = 100;
+        var contentHolder = document.getElementById(config.holderId);
+        var body = document.getElementsByTagName('body')[0];
+
+        body.className = 'hide-content';
+        config.highlights = document.getElementById(config.highlightsId);
+        config.element = document.getElementById(config.textareaId);
+        config.element.style = config.width + 'px';
+        config.element.style.height = '1px';
+        var height = config.element.scrollHeight < minHeight ?
+            100 : config.element.scrollHeight;
+        contentHolder.style.height = height + 'px';
+        config.element.style.height = height + 'px';
+        heightCheck(true);
+        contentHolder.style.height = 'auto';
     }
 
-    if (window.addEventListener) {
-        window.addEventListener("message", displayMessage, false);
+    /***
+     * Processing incoming messages
+     * @param {object} evt
+     */
+    function processorMessage(evt) {
+        var message = evt.data;
+
+        switch (message.type) {
+            case 'INIT':
+                if (message.data.id) {
+                    config.id = message.data.id;
+                    config.recipient = evt.origin;
+                    config.width = message.data.width;
+                    init();
+                }
+                break;
+            case 'UPDATE_TEXT':
+                if (message.data.text) {
+                    config.element.value = message.data.text;
+                    config.highlights.style.display = 'none';
+                    heightCheck(true);
+                }
+                break;
+            case 'SELECT_TEXT':
+                if (message.data.text) {
+                    findText(message.data.text);
+                }
+                break;
+            case 'REMOVE_SELECTION':
+                config.highlights.style.display = 'none';
+                break;
+
+            default:
+                console.log('message=>', message);
+        }
     }
-    else {
-        window.attachEvent("onmessage", displayMessage);
+
+    /***
+     * Creating Message instance
+     * @param {string} type
+     * @param {string} id
+     * @param {object} data
+     * @constructor
+     */
+    function Message(type, id, data) {
+        this.type = type || '';
+        this.recipientId = id || '';
+        this.data = data || {};
     }
-    setTimeout(function(){
-        parent.window.postMessage("hello", "http://localhost:8888");
-    },5000)
+
+    /***
+     * Create message for iframe
+     * @param {string} widgetId
+     * @param {string} type
+     * @param {object} data
+     */
+    function messageCreator(widgetId, type, data) {
+        widgets[widgetId].contentWindow.postMessage(new Message(type, widgetId, data), iFrameLink);
+    }
+
+    /***
+     * Update height and can sand message about it
+     * @param {boolean} withMessage
+     * @returns {number}
+     */
+    function heightCheck(withMessage) {
+        var minHeight = 100;
+        config.element.style.height = '1px';
+        var height = config.element.scrollHeight < minHeight ?
+            100 : config.element.scrollHeight;
+        config.element.style.height = height + 'px';
+        if (withMessage) {
+            messageCreator('HEIGHT', config.id, {height: height});
+        }
+        return height;
+    }
+
+    /***
+     * Add marks to incoming text
+     * @param {string} text
+     * @param {string} select
+     * @returns {string | *}
+     */
+    function applyHighlights(text, select) {
+        var re = new RegExp(select, 'g');
+        text = text
+            .replace(/\n$/g, '\n\n')
+            .replace(re, '<mark>' + select + '</mark>');
+
+        if (isIE) {
+            text = text.replace(/ /g, ' <wbr>');
+        }
+
+        return text;
+    }
+
+    /***
+     * Finding and highlighting text in textarea
+     * @param {string} text
+     */
+    function findText(text) {
+        var highlightedText = applyHighlights(config.element.value, text);
+        config.highlights.innerHTML = highlightedText;
+        config.highlights.style.display = 'block';
+    }
+
+    /***
+     * Updating height and sending message about height, text
+     */
+    function onChangeTextarea() {
+        var height = heightCheck(false);
+        var text = config.element.value;
+        config.highlights.style.display = 'none';
+        messageCreator('CHANGE_TEXT', config.id, {height: height, text: text});
+    }
+
+    window.addEventListener("message", processorMessage, false);
 </script>
 </body>
 </html>
