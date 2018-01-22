@@ -220,7 +220,7 @@
      * @param {object} data
      */
     function messageCreator(widgetId, type, data) {
-        parent.window.contentWindow.postMessage(new Message(type, widgetId, data), iFrameLink);
+        parent.window.postMessage(new Message(type, widgetId, data), config.recipient);
     }
 
     /***
@@ -235,7 +235,7 @@
             100 : config.element.scrollHeight;
         config.element.style.height = height + 'px';
         if (withMessage) {
-            messageCreator('HEIGHT', config.id, {height: height});
+            messageCreator(config.id, 'HEIGHT', {height: height});
         }
         return height;
     }
@@ -276,7 +276,7 @@
         var height = heightCheck(false);
         var text = config.element.value;
         config.highlights.style.display = 'none';
-        messageCreator('CHANGE_TEXT', config.id, {height: height, text: text});
+        messageCreator(config.id, 'CHANGE_TEXT', {height: height, text: text});
     }
 
     window.addEventListener("message", processorMessage, false);
