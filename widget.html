@@ -107,7 +107,7 @@
         <div id="backdrop">
             <div id="highlights"></div>
         </div>
-        <textarea name="widget" id="bla" onkeyup="onChangeTextarea(event);">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aspernatur consequatur cupiditate delectus, dolores</textarea>
+        <textarea name="widget" id="bla" onkeyup="onChangeTextarea();">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aspernatur consequatur cupiditate delectus, dolores</textarea>
         <p><span>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aspernatur consequatur cupiditate delectus, dolores
     eos fugit hic iusto libero maxime necessitatibus, non perspiciatis placeat praesentium, quae quasi qui quisquam
     repudiandae veritatis.</span><span>Animi culpa debitis id inventore iste magnam natus neque odio pariatur perspiciatis
@@ -273,6 +273,7 @@
      * Updating height and sending message about height, text
      */
     function onChangeTextarea() {
+        if (config.element === null) {return}
         var height = heightCheck(false);
         var text = config.element.value;
         config.highlights.style.display = 'none';
